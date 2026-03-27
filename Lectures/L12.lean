@@ -50,6 +50,7 @@ deriving Fintype, DecidableEq
 
 namespace Ga
 
+-- Fin 3
 inductive NTA : Type
 | E | T | F
 deriving Fintype, DecidableEq
@@ -70,4 +71,73 @@ abbrev GA : CFG SigmaA
             }
 }
 
+/-
+E -> T | E + T
+T -> F | T * F
+F -> a | ( E )
+-/
+
 end Ga
+
+/-
+E -> E + E | E * E | a | ( E )
+-/
+
+open SigmaA
+
+abbrev GAA : CFG SigmaA
+:= {
+    NT := Fin 1
+    S := 0
+    P := { (0 , [inl 0,inr plus,inl 0 ]),
+           (0 , [inl 0,inr times,inl 0]),
+           (0 , [inr a]),
+           (0 , [inr lpar,inl 0,inr rpar])
+    }
+}
+
+theorem today : L Ga.GA = L GAA := by sorry
+
+--- What is parse tree?
+--- What does it mean that a grammar ambiguous ?
+--- there is more than parse tree for at least one word.
+
+variable (G : CFG Sigma)
+
+mutual
+
+  inductive PT : G.NT → Type
+
+    | node : ∀ {A} , ∀ {α} , (A , α ) ∈ G.P
+        → PTSent α → PT A
+
+  inductive PTSent : Sent G → Type
+
+    | nil  : PTSent []
+    | NT : ∀ {A}, ∀ {α} ,
+        PT A → PTSent α → PTSent ((inl A)::α)
+    | T : ∀ a {α} , PTSent α → PTSent (inr a :: α)
+
+end
+
+open PT
+open PTSent
+
+variable (G : CFG Sigma)
+
+mutual
+
+  def yield {A : G.NT }: PT G A → Word Sigma
+  | node _ t => yieldSent t
+
+  def yieldSent {α : Sent G} : PTSent G α → Word Sigma
+  | nil => []
+  | NT t ts => yield t ++ yieldSent ts
+  | T a ts => a :: yieldSent ts
+
+end
+
+abbrev Amb : Prop
+:= ∃ w : Word Sigma ,
+   ∃ A : G.NT , ∃ t t' : PT G A , yield G t = w ∧ yield G t' = w
+   ∧ t ≠ t'

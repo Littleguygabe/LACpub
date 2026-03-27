@@ -41,46 +41,92 @@ words in which every ⟨ is “closed” by a ⟩ occurring later in the word. F
 
 /- 1. Define a CFG for the language, you will also need to define an inductive type for the Non-terminals -/
 inductive NTPar : Type
--- E.g. | NT1 | NT2 | ...
+| Start
 deriving Fintype, DecidableEq
 open NTPar
 
 abbrev GPar : CFG SigmaPar
-:= { NT := sorry
-     S := sorry
-     P := sorry
+:= { NT := NTPar
+     S := Start
+     P := {
+          (Start, []),
+          (Start, [inr lpar, inl Start, inr rpar]),
+          (Start, [inl Start, inl Start])
+     }
 }
 
 /- 2. Define a PDA for the language -/
 -- You need to define inductive types for the states and the stack alphabet
 inductive QPar : Type
--- E.g. | q0 | q1 | ...
+| q0 | q1
 deriving Fintype, DecidableEq
 open QPar
 
+-- Define the stack alphabet
 inductive ΓPar : Type
--- E.g. | g0 | g1 | ...
+| Z | X
 deriving Fintype, DecidableEq
 open ΓPar
 
 abbrev PPar : PDA SigmaPar
-:= { Q := sorry
-     Γ := sorry
-     s := sorry
-     Z₀ := sorry
-     F := sorry
-     δ q x z := sorry
+:= { Q := QPar
+     Γ := ΓPar
+     s := q0
+     Z₀ := Z
+     F := { q1 }
+     δ q x z := match q, x, z with
+       | q0, some lpar, Z => {(q0, [X, Z])}
+       | q0, some lpar, X => {(q0, [X, X])}
+       | q0, some rpar, X => {(q0, [])}
+       | q0, none, Z => {(q1, [Z])}
+       | _, _, _ => {}
 }
 
 -- 3. Show that ⟨⟨⟩⟨⟩⟩ ∈ L PPar
 -- you can either do this by spelling out the sequence of IDs in a comment or by proving
 theorem e3 : [SigmaPar.lpar,SigmaPar.lpar, SigmaPar.rpar,SigmaPar.lpar,SigmaPar.rpar, SigmaPar.rpar] ∈ L PPar := by
-     sorry
--- in Lean.
+     simp
+     exists [ΓPar.Z]
+     apply Star.step
+     apply Step.read
+     constructor
+
+     apply Star.step
+     apply Step.read
+     constructor
+
+     apply Star.step
+     apply Step.read
+     constructor
+
+     apply Star.step
+     apply Step.read
+     constructor
+
+     apply Star.step
+     apply Step.read
+     constructor
+
+     apply Star.step
+     apply Step.read
+     constructor
+
+     apply Star.step
+     apply Step.silent
+     constructor
+
+     apply Star.refl
+
 
 /-
-⟨⟨⟩⟨⟩⟩ ∈ L PPar because:
-(q0, lpar lpar rpar lpar rpar rpar, hash) ->
-...
+Trace of ⟨⟨⟩⟨⟩⟩ ∈ L PPar for your notes:
+(q0, [lpar, lpar, rpar, lpar, rpar, rpar], [Z]) -> read lpar
+(q0, [lpar, rpar, lpar, rpar, rpar], [X, Z])    -> read lpar
+(q0, [rpar, lpar, rpar, rpar], [X, X, Z])       -> read rpar
+(q0, [lpar, rpar, rpar], [X, Z])                -> read lpar
+(q0, [rpar, rpar], [X, X, Z])                   -> read rpar
+(q0, [rpar], [X, Z])                            -> read rpar
+(q0, [], [Z])                                   -> silent (epsilon)
+(q1, [], [Z])                                   -> Accept!
 -/
 end ex5
