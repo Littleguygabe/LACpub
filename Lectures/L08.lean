@@ -151,7 +151,7 @@ abbrev nfa_epsilon : NFA Sigma -- accepts only the empty string, anything else a
 
 abbrev nfa_plus :
 NFA Sigma → NFA Sigma → NFA Sigma
-| A1 A2 => -- extracting the 2 nodes from the RE tree using pattern matching
+| A1, A2 => -- extracting the 2 nodes from the RE tree using pattern matching
 let Q := Sum A1.Q A2.Q -- just the combination of states for the 2 nodes at from this leaf
 {
   Q := Q
